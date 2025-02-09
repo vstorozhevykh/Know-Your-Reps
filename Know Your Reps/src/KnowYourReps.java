@@ -3,6 +3,9 @@ import java.util.Scanner;
 public class KnowYourReps {
 
     public static void main(String[] args) {
+
+        CivicInformation civicinfo;
+
         System.out.println("Welcome to Know Your Reps!");
         menu();
 
@@ -12,8 +15,14 @@ public class KnowYourReps {
         while (!input.equalsIgnoreCase("q")) {
             if (input.equalsIgnoreCase("l")) { 
                 System.out.print("Enter Address: ");
-                String address = scnr.nextLine(); 
-                
+                String address = scnr.nextLine();
+                address = address.replace(" ", "%20");
+                civicinfo = new CivicInformation();
+                try {
+                    civicinfo.fetchCivicData(address);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Error with address");
+                }
             }
             else if (input.equalsIgnoreCase("f")) {
                 System.out.println("Yay federal");

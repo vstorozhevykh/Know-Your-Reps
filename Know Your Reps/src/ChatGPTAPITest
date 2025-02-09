@@ -1,0 +1,82 @@
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+
+public class ChatGPTAPITest {
+    // Use environment variables or a config file for security!
+    private static final String API_KEY = System.getenv("OPENAI_API_KEY");  // Secure approach
+    private static final String API_URL = "https://api.openai.com/v1/chat/completions";
+    private static final String MODEL = "gpt-4o-mini";  // Correct model name
+
+    public static void main(String[] args) {
+        String response = chatGPT("Hello, how are you? Can you explain what a Fibonacci number is?");
+        System.out.println(response);
+    }
+
+    public static String chatGPT(String prompt) {
+        try {
+            URL url = new URL(API_URL);
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("POST");
+            connection.setRequestProperty("Authorization", "Bearer " + API_KEY);
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setDoOutput(true);
+
+            // Construct JSON payload correctly
+            String body = "{"
+                + "\"model\": \"" + MODEL + "\","
+                + "\"messages\": [{\"role\": \"user\", \"content\": \"" + prompt + "\"}],"
+                + "\"temperature\": 0.7"
+                + "}";
+
+            // Write request body
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = body.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            // Check response code
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                throw new IOException("HTTP Error: " + responseCode);
+            }
+
+            // Read response
+            StringBuilder response = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String responseLine;
+                while ((responseLine = br.readLine()) != null) {
+                    response.append(responseLine.trim());
+                }
+            }
+
+            // Extract and return the message
+            return extractMessageFromJSONResponse(response.toString());
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    // Proper JSON parsing using Gson
+    public static String extractMessageFromJSONResponse(String jsonResponse) {
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(jsonResponse, JsonObject.class);
+        
+        // Navigate through the JSON response to find the message content
+        JsonArray choices = jsonObject.getAsJsonArray("choices");
+        if (choices != null && choices.size() > 0) {
+            JsonObject firstChoice = choices.get(0).getAsJsonObject();
+            JsonObject message = firstChoice.getAsJsonObject("message");
+            return message.get("content").getAsString().trim();
+        }
+
+        return "No response received.";
+    }
+
+   
+}
